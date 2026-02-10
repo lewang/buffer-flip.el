@@ -101,7 +101,7 @@ If there is no other window, one is created first."
 (defun buffer-flip-cycle (&optional direction)
   "Cycle in the direction indicated by DIRECTION.
 DIRECTION can be 'forward or 'backward"
-  (let ((l (buffer-list)))
+  (let ((l (buffer-list (selected-frame))))
     (switch-to-buffer            ; Switch to next/prev buffer in stack
      (cl-do ((buf (current-buffer)     ; Using the current buffer as a
                   (nth (mod (+ (cl-position buf l) ; reference point to cycle
