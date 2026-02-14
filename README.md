@@ -75,6 +75,22 @@ switches to the buffer you started in.
 | <kbd>Alt-Tab</kbd> <kbd>Alt-Tab</kbd> <kbd>Alt-Tab</kbd> <kbd>Alt-Esc</kbd> | Start flipping through buffers and then cancel, returning to the original buffer. |
 | <kbd>Alt-Tab</kbd> <kbd>Alt-Tab</kbd> <kbd>Alt-Shift-Tab</kbd>              | Flips forward through the two most recent buffers, then flips backward one buffer.|
 
+The buffer list is treated as a circle during cycling.  Filtered
+buffers (internal, already-visible, or matching
+`buffer-flip-skip-patterns`) are skipped but keep their positions.
+The list is not reshuffled until cycling ends — only then is the
+chosen buffer promoted to the front.
+
+| Step                                   | Buffer list         | Notes                                 |
+|----------------------------------------|---------------------|---------------------------------------|
+| Start                                  | [**A**, 1, 2, B, C] | `A` is current; `1`, `2` are filtered |
+| <kbd>Alt-Tab</kbd>                     | [A, 1, 2, **B**, C] | `1`, `2` skipped; list unchanged      |
+| <kbd>Alt-Tab</kbd>                     | [A, 1, 2, B, **C**] | List still unchanged (NORECORD)       |
+| <kbd>Alt-Shift-Tab</kbd>               | [A, 1, 2, **B**, C] | Back to `B`                           |
+| <kbd>Alt-Shift-Tab</kbd>               | [**A**, 1, 2, B, C] | Back to `A`                           |
+| <kbd>Alt-Shift-Tab</kbd>               | [A, 1, 2, B, **C**] | Wraps to end                          |
+| Accept `C`                             | [**C**, A, 1, 2, B] | `C` promoted to front                 |
+
 
 Another good key binding
 ------------------------
@@ -165,28 +181,3 @@ There is no additional buffer stack maintained by this package.  Emacs
 already keeps its buffers in a stack, and this package leverages that
 fact.  You can see the Emacs buffer stack by running `M-x
 list-buffers` or by evaluating `(buffer-list)`.
-
-### How cycling preserves LRU order
-
-During a cycling session, `switch-to-buffer` is called with
-`NORECORD=t`, so the buffer list stays stable — cycling walks the
-list as a circle without reshuffling it.  Filtered buffers (internal,
-already-visible, or matching `buffer-flip-skip-patterns`) are skipped
-during traversal but remain in the list at their original positions.
-
-When the session ends (any non-cycling key is pressed), the chosen
-buffer is promoted to the front of the list via a normal
-`switch-to-buffer` (without NORECORD).
-
-**Example:** Starting list is `[A, 1, 2, B, C]` where `1` and `2`
-are filtered.  User cycles forward and accepts `C`:
-
-| Step              | Buffer list         | Notes                                  |
-|-------------------|---------------------|----------------------------------------|
-| Start             | [**A**, 1, 2, B, C] | `A` is current                         |
-| Cycle forward     | [A, 1, 2, **B**, C] | `1`, `2` skipped; list unchanged       |
-| Cycle forward     | [A, 1, 2, B, **C**] | List still unchanged (NORECORD)        |
-| Accept `C`        | [**C**, A, 1, 2, B] | `C` promoted to front; rest unchanged  |
-
-`C` is most recent, `A` (where you came from) is second, and filtered
-buffers keep their relative positions.
