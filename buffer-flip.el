@@ -65,6 +65,46 @@ Buffers with names matching these patterns will be skipped when
 flipping through buffers."
   :type '(repeat string) :group 'buffer-flip)
 
+(defface buffer-flip-current-buffer-face
+  '((t :inherit minibuffer-prompt))
+  "Face for the current buffer in the buffer-flip display."
+  :group 'buffer-flip)
+
+(defface buffer-flip-other-buffer-face
+  '((t :inherit default))
+  "Face for non-current buffers in the buffer-flip display."
+  :group 'buffer-flip)
+
+(defun buffer-flip-format-buffer (buf current-buf)
+  "Format BUF name for display.  CURRENT-BUF is the active buffer.
+Current buffer is shown in [brackets] with `buffer-flip-current-buffer-face',
+others are plain with `buffer-flip-other-buffer-face'."
+  (let* ((name (buffer-name buf))
+         (current-p (eq buf current-buf))
+         (text (if current-p (format "[%s]" name) name))
+         (face (if current-p
+                   'buffer-flip-current-buffer-face
+                 'buffer-flip-other-buffer-face)))
+    (add-text-properties 0 (length text) (list 'face face) text)
+    text))
+
+(defun buffer-flip-format-buffers (bufs current-buf)
+  "Format BUFS for echo-area display with CURRENT-BUF highlighted.
+Joins formatted buffer names with spaces and truncates to fit
+the minibuffer window width."
+  (let ((text (mapconcat (lambda (buf)
+                           (buffer-flip-format-buffer buf current-buf))
+                         bufs " ")))
+    (truncate-string-to-width text (1- (window-width (minibuffer-window))))))
+
+(defun buffer-flip-show-buffers ()
+  "Display the eligible buffer list in the echo area.
+Current buffer is shown in [brackets] and highlighted."
+  (let* ((bufs (cl-remove-if #'buffer-flip-skip-buffer
+                              (buffer-list (selected-frame))))
+         (message-log-max nil))
+    (message "%s" (buffer-flip-format-buffers bufs (current-buffer)))))
+
 ;;;###autoload
 (defun buffer-flip (&optional arg original-configuration)
   "Begin cycling through buffers.
@@ -109,7 +149,8 @@ DIRECTION can be 'forward or 'backward"
                             (length l)) l)) ; Mod length to wrap
              (count (length l) (1- count))) ; count the number of iterations
          ((or (= 0 count) ;; don't cycle through list more than once.
-              (not (buffer-flip-skip-buffer buf))) buf)) t))) ; skip some buffers
+              (not (buffer-flip-skip-buffer buf))) buf)) t))
+  (buffer-flip-show-buffers))
 
 (defun buffer-flip-skip-buffer (buf)
   "Return non-nil if BUF should be skipped."
