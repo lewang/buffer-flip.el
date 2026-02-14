@@ -165,3 +165,19 @@ There is no additional buffer stack maintained by this package.  Emacs
 already keeps its buffers in a stack, and this package leverages that
 fact.  You can see the Emacs buffer stack by running `M-x
 list-buffers` or by evaluating `(buffer-list)`.
+
+### How cycling preserves LRU order
+
+During a cycling session, `switch-to-buffer` is called with
+`NORECORD=t`, so the buffer list stays stable — cycling walks the
+list as a circle without reshuffling it.  Filtered buffers (internal,
+already-visible, or matching `buffer-flip-skip-patterns`) are skipped
+during traversal but remain in the list at their original positions.
+
+When the session ends (any non-cycling key is pressed), the chosen
+buffer is promoted to the front of the list via a normal
+`switch-to-buffer` (without NORECORD).  This gives the correct LRU
+result.  For example, starting from `[A, 1, 2, B, C]` where `1` and
+`2` are filtered, cycling through `A → B → C` and accepting `C`
+produces `[C, A, 1, 2, B]` — `C` is most recent, `A` (where you came
+from) is second, and filtered buffers keep their relative positions.
