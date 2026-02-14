@@ -84,57 +84,38 @@ flipping through buffers."
   "Format BUF name for display.  CURRENT-BUF is the active buffer.
 Current buffer is shown in [brackets] with `buffer-flip-current-buffer-face',
 others are plain with `buffer-flip-other-buffer-face'."
-  (let* ((name (buffer-name buf))
-         (current-p (eq buf current-buf))
-         (text (if current-p (format "[%s]" name) name))
-         (face (if current-p
-                   'buffer-flip-current-buffer-face
-                 'buffer-flip-other-buffer-face)))
-    (add-text-properties 0 (length text) (list 'face face) text)
-    text))
+  (let ((current-p (eq buf current-buf)))
+    (propertize (if current-p (format "[%s]" (buffer-name buf)) (buffer-name buf))
+                'face (if current-p
+                          'buffer-flip-current-buffer-face
+                        'buffer-flip-other-buffer-face))))
 
 (defun buffer-flip-format-buffers (bufs current-buf)
   "Format BUFS for echo-area display with CURRENT-BUF highlighted.
 Rotates the list to center the current buffer and inserts a fence
 marker at the list boundary to show where the cycle wraps."
-  (let* ((len (length bufs))
-         (idx (cl-position current-buf bufs))
-         (half (/ len 2))
-         (start (mod (- idx half) len))
-         (items '())
-         (current-item-idx nil)
-         (j 0))
-    ;; Build rotated display list with fence at wrap point
-    (dotimes (i len)
-      (let ((real-idx (mod (+ start i) len)))
-        (when (and (> i 0) (= real-idx 0))
-          (let ((fence "┃┃"))
-            (add-text-properties 0 (length fence) '(face buffer-flip-fence-face) fence)
-            (push fence items))
-          (cl-incf j))
-        (when (= real-idx idx)
-          (setq current-item-idx j))
-        (push (buffer-flip-format-buffer (nth real-idx bufs) current-buf) items)
-        (cl-incf j)))
-    (setq items (nreverse items))
-    ;; Join and center on the current buffer
-    (let* ((text (mapconcat #'identity items " "))
-           (width (1- (window-width (minibuffer-window))))
-           (current-start 0)
-           (current-end 0)
-           (pos 0))
-      (cl-loop for i from 0
-               for item in items
-               do (if (= i current-item-idx)
-                      (progn (setq current-start pos
-                                   current-end (+ pos (length item)))
-                             (cl-return))
-                    (setq pos (+ pos (length item) 1))))
-      (let* ((current-center (/ (+ current-start current-end) 2))
-             (text-len (length text))
-             (start-col (max 0 (min (- current-center (/ width 2))
-                                    (max 0 (- text-len width))))))
-        (truncate-string-to-width text (+ start-col width) start-col)))))
+  (if (null bufs)
+      ""
+    (let* ((len (length bufs))
+           (idx (cl-position current-buf bufs))
+           (start (mod (- idx (/ len 2)) len))
+           (items (cl-loop for i below len
+                           for real-idx = (mod (+ start i) len)
+                           append (when (and (> i 0) (= real-idx 0))
+                                    (list (propertize "┃┃" 'face 'buffer-flip-fence-face)))
+                           collect (buffer-flip-format-buffer (nth real-idx bufs) current-buf)))
+           (current-item-idx (if (>= idx start)
+                                 (- idx start)
+                               (+ idx (- len start) 1)))
+           (current-start (cl-loop for i below current-item-idx
+                                   sum (1+ (length (nth i items)))))
+           (current-end (+ current-start (length (nth current-item-idx items))))
+           (text (mapconcat #'identity items " "))
+           (width (max 1 (1- (window-width (minibuffer-window)))))
+           (text-len (length text))
+           (start-col (max 0 (min (- (/ (+ current-start current-end) 2) (/ width 2))
+                                  (max 0 (- text-len width))))))
+      (truncate-string-to-width text (+ start-col width) start-col))))
 
 (defun buffer-flip-show-buffers ()
   "Display the eligible buffer list in the echo area.
