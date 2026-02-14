@@ -90,12 +90,28 @@ others are plain with `buffer-flip-other-buffer-face'."
 
 (defun buffer-flip-format-buffers (bufs current-buf)
   "Format BUFS for echo-area display with CURRENT-BUF highlighted.
-Joins formatted buffer names with spaces and truncates to fit
-the minibuffer window width."
-  (let ((text (mapconcat (lambda (buf)
-                           (buffer-flip-format-buffer buf current-buf))
-                         bufs " ")))
-    (truncate-string-to-width text (1- (window-width (minibuffer-window))))))
+Joins formatted buffer names with spaces and scrolls horizontally
+to keep the current buffer visible."
+  (let* ((items (mapcar (lambda (buf)
+                          (buffer-flip-format-buffer buf current-buf))
+                        bufs))
+         (text (mapconcat #'identity items " "))
+         (width (1- (window-width (minibuffer-window))))
+         (current-start 0)
+         (current-end 0))
+    ;; Find the position of the current buffer in the joined string
+    (let ((pos 0))
+      (cl-loop for buf in bufs
+               for item in items
+               do (if (eq buf current-buf)
+                      (progn (setq current-start pos
+                                   current-end (+ pos (length item)))
+                             (cl-return))
+                    (setq pos (+ pos (length item) 1)))))
+    (let ((start-col (if (<= current-end width)
+                         0
+                       (max 0 (- current-start 2)))))
+      (truncate-string-to-width text (+ start-col width) start-col))))
 
 (defun buffer-flip-show-buffers ()
   "Display the eligible buffer list in the echo area.
