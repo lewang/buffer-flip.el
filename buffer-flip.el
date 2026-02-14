@@ -81,12 +81,10 @@ Current buffer is shown in [brackets] with `buffer-flip-current-buffer-face',
 others are plain with `buffer-flip-other-buffer-face'."
   (let* ((name (buffer-name buf))
          (current-p (eq buf current-buf))
-         (text (if current-p (format "[%s]" name) name))
-         (face (if current-p
-                   'buffer-flip-current-buffer-face
-                 'buffer-flip-other-buffer-face)))
-    (add-text-properties 0 (length text) (list 'face face) text)
-    text))
+         (text (if current-p (format "[%s]" name) name)))
+    (propertize text 'face (if current-p
+                                'buffer-flip-current-buffer-face
+                              'buffer-flip-other-buffer-face))))
 
 (defun buffer-flip-format-buffers (bufs current-buf)
   "Format BUFS for echo-area display with CURRENT-BUF highlighted.
