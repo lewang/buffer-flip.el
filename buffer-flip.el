@@ -100,10 +100,13 @@ the minibuffer window width."
 (defun buffer-flip-show-buffers ()
   "Display the eligible buffer list in the echo area.
 Current buffer is shown in [brackets] and highlighted."
-  (let* ((bufs (cl-remove-if #'buffer-flip-skip-buffer
-                              (buffer-list (selected-frame))))
+  (let* ((cur (current-buffer))
+         (bufs (cl-remove-if (lambda (buf)
+                               (and (not (eq buf cur))
+                                    (buffer-flip-skip-buffer buf)))
+                             (buffer-list (selected-frame))))
          (message-log-max nil))
-    (message "%s" (buffer-flip-format-buffers bufs (current-buffer)))))
+    (message "%s" (buffer-flip-format-buffers bufs cur))))
 
 ;;;###autoload
 (defun buffer-flip (&optional arg original-configuration)
