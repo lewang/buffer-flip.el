@@ -108,9 +108,10 @@ to keep the current buffer visible."
                                    current-end (+ pos (length item)))
                              (cl-return))
                     (setq pos (+ pos (length item) 1)))))
-    (let ((start-col (if (<= current-end width)
-                         0
-                       (max 0 (- current-start 2)))))
+    (let* ((current-center (/ (+ current-start current-end) 2))
+           (text-len (length text))
+           (start-col (max 0 (min (- current-center (/ width 2))
+                                  (max 0 (- text-len width))))))
       (truncate-string-to-width text (+ start-col width) start-col))))
 
 (defun buffer-flip-show-buffers ()
