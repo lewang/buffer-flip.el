@@ -75,6 +75,11 @@ flipping through buffers."
   "Face for non-current buffers in the buffer-flip display."
   :group 'buffer-flip)
 
+(defface buffer-flip-fence-face
+  '((t :inherit shadow))
+  "Face for the boundary fence in the buffer-flip display."
+  :group 'buffer-flip)
+
 (defun buffer-flip-format-buffer (buf current-buf)
   "Format BUF name for display.  CURRENT-BUF is the active buffer.
 Current buffer is shown in [brackets] with `buffer-flip-current-buffer-face',
@@ -90,29 +95,46 @@ others are plain with `buffer-flip-other-buffer-face'."
 
 (defun buffer-flip-format-buffers (bufs current-buf)
   "Format BUFS for echo-area display with CURRENT-BUF highlighted.
-Joins formatted buffer names with spaces and scrolls horizontally
-to keep the current buffer visible."
-  (let* ((items (mapcar (lambda (buf)
-                          (buffer-flip-format-buffer buf current-buf))
-                        bufs))
-         (text (mapconcat #'identity items " "))
-         (width (1- (window-width (minibuffer-window))))
-         (current-start 0)
-         (current-end 0))
-    ;; Find the position of the current buffer in the joined string
-    (let ((pos 0))
-      (cl-loop for buf in bufs
+Rotates the list to center the current buffer and inserts a fence
+marker at the list boundary to show where the cycle wraps."
+  (let* ((len (length bufs))
+         (idx (cl-position current-buf bufs))
+         (half (/ len 2))
+         (start (mod (- idx half) len))
+         (items '())
+         (current-item-idx nil)
+         (j 0))
+    ;; Build rotated display list with fence at wrap point
+    (dotimes (i len)
+      (let ((real-idx (mod (+ start i) len)))
+        (when (and (> i 0) (= real-idx 0))
+          (let ((fence "┃┃"))
+            (add-text-properties 0 (length fence) '(face buffer-flip-fence-face) fence)
+            (push fence items))
+          (cl-incf j))
+        (when (= real-idx idx)
+          (setq current-item-idx j))
+        (push (buffer-flip-format-buffer (nth real-idx bufs) current-buf) items)
+        (cl-incf j)))
+    (setq items (nreverse items))
+    ;; Join and center on the current buffer
+    (let* ((text (mapconcat #'identity items " "))
+           (width (1- (window-width (minibuffer-window))))
+           (current-start 0)
+           (current-end 0)
+           (pos 0))
+      (cl-loop for i from 0
                for item in items
-               do (if (eq buf current-buf)
+               do (if (= i current-item-idx)
                       (progn (setq current-start pos
                                    current-end (+ pos (length item)))
                              (cl-return))
-                    (setq pos (+ pos (length item) 1)))))
-    (let* ((current-center (/ (+ current-start current-end) 2))
-           (text-len (length text))
-           (start-col (max 0 (min (- current-center (/ width 2))
-                                  (max 0 (- text-len width))))))
-      (truncate-string-to-width text (+ start-col width) start-col))))
+                    (setq pos (+ pos (length item) 1))))
+      (let* ((current-center (/ (+ current-start current-end) 2))
+             (text-len (length text))
+             (start-col (max 0 (min (- current-center (/ width 2))
+                                    (max 0 (- text-len width))))))
+        (truncate-string-to-width text (+ start-col width) start-col)))))
 
 (defun buffer-flip-show-buffers ()
   "Display the eligible buffer list in the echo area.
