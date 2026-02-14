@@ -176,8 +176,17 @@ during traversal but remain in the list at their original positions.
 
 When the session ends (any non-cycling key is pressed), the chosen
 buffer is promoted to the front of the list via a normal
-`switch-to-buffer` (without NORECORD).  This gives the correct LRU
-result.  For example, starting from `[A, 1, 2, B, C]` where `1` and
-`2` are filtered, cycling through `A → B → C` and accepting `C`
-produces `[C, A, 1, 2, B]` — `C` is most recent, `A` (where you came
-from) is second, and filtered buffers keep their relative positions.
+`switch-to-buffer` (without NORECORD).
+
+**Example:** Starting list is `[A, 1, 2, B, C]` where `1` and `2`
+are filtered.  User cycles forward and accepts `C`:
+
+| Step              | Buffer list         | Notes                                  |
+|-------------------|---------------------|----------------------------------------|
+| Start             | [**A**, 1, 2, B, C] | `A` is current                         |
+| Cycle forward     | [A, 1, 2, **B**, C] | `1`, `2` skipped; list unchanged       |
+| Cycle forward     | [A, 1, 2, B, **C**] | List still unchanged (NORECORD)        |
+| Accept `C`        | [**C**, A, 1, 2, B] | `C` promoted to front; rest unchanged  |
+
+`C` is most recent, `A` (where you came from) is second, and filtered
+buffers keep their relative positions.
