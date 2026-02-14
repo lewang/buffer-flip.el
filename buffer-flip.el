@@ -153,12 +153,21 @@ be restored upon abort."
 ;;;###autoload
 (defun buffer-flip-other-window ()
   "Switch to another window and begin cycling through buffers in that window.
-If there is no other window, one is created first."
+Skips dedicated windows.  If no suitable window exists, one is
+created first."
   (interactive)
-  (let ((original-window-configuration (current-window-configuration)))
-    (when (= 1 (count-windows))
-      (split-window-horizontally))
-    (other-window 1)
+  (let ((original-window-configuration (current-window-configuration))
+        (start-window (selected-window))
+        (target nil))
+    (walk-windows (lambda (w)
+                    (when (and (not target)
+                               (not (eq w start-window))
+                               (not (window-dedicated-p w)))
+                      (setq target w))))
+    (if target
+        (select-window target)
+      (split-window-horizontally)
+      (other-window 1))
     (buffer-flip nil original-window-configuration)))
 
 (defun buffer-flip-cycle (&optional direction)
