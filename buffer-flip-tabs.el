@@ -112,6 +112,8 @@ tab (the `car' of the cache) to most recent."
 (defun buffer-flip-tab-cycle (&optional direction)
   "Cycle tabs in DIRECTION (`forward' or `backward')."
   (require 'tab-bar)
+  (unless buffer-flip-tab--tabs
+    (user-error "No active tab cycling session"))
   (let* ((tabs buffer-flip-tab--tabs)
          (len (length tabs))
          (current-tab (cl-find-if (lambda (tab) (eq 'current-tab (car tab)))
