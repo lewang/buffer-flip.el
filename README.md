@@ -1,10 +1,9 @@
-buffer-flip.el
-=================
+buffer-flip
+===========
 
-This package streamlines the operation of switching between recent
-buffers, with an emphasis on minimizing keystrokes.  Inspired by the
-Alt-Tab convention in Windows, it keeps the most recently used buffers
-on the top of the stack.
+This package streamlines the operation of switching between recent buffers and tab-bar tabs, with an emphasis on
+minimizing keystrokes.  Inspired by the Alt-Tab convention in Windows, it keeps the most recently used items on the
+top of the stack.
 
 Installation
 ------------
@@ -19,38 +18,64 @@ buffer-flip is available on Melpa.
 
 Then add the following to your config, adapting to your preferences.
 
+### Buffer cycling
+
 ```lisp
 ;; key to begin cycling buffers.  Global key.
 (global-set-key (kbd "M-<tab>") 'buffer-flip)
-    
+
 ;; transient keymap used once cycling starts
 (setq buffer-flip-map
       (let ((map (make-sparse-keymap)))
-        (define-key map (kbd "M-<tab>")   'buffer-flip-forward) 
+        (define-key map (kbd "M-<tab>")   'buffer-flip-forward)
         (define-key map (kbd "M-S-<tab>") 'buffer-flip-backward)
         (define-key map (kbd "M-ESC")     'buffer-flip-abort)
         map))
 
 ;; buffers matching these patterns will be skipped
-(setq buffer-flip-skip-patterns 
+(setq buffer-flip-skip-patterns
       '("^\\*helm\\b"
         "^\\*swiper\\*$"))
 ```
 
-### Installing with [use-package](https://github.com/jwiegley/use-package)
+### Tab-bar tab cycling
+
+Requires Emacs 27+ with `tab-bar-mode`.  Only loaded when used — no overhead if you don't configure it.
+
+```lisp
+(global-set-key (kbd "M-S-<iso-lefttab>") 'buffer-flip-tab)
+
+(setq buffer-flip-tab-map
+      (let ((map (make-sparse-keymap)))
+        (define-key map (kbd "M-S-<iso-lefttab>") 'buffer-flip-tab-forward)
+        (define-key map (kbd "M-S-<tab>")         'buffer-flip-tab-backward)
+        (define-key map (kbd "M-ESC")             'buffer-flip-tab-abort)
+        map))
+```
+
+### use-package
 
 ```lisp
 (use-package buffer-flip
   :ensure t
   :bind  (("M-<tab>" . buffer-flip)
           :map buffer-flip-map
-          ( "M-<tab>" .   buffer-flip-forward) 
-          ( "M-S-<tab>" . buffer-flip-backward) 
+          ( "M-<tab>" .   buffer-flip-forward)
+          ( "M-S-<tab>" . buffer-flip-backward)
           ( "M-ESC" .     buffer-flip-abort))
   :config
   (setq buffer-flip-skip-patterns
         '("^\\*helm\\b"
           "^\\*swiper\\*$")))
+
+;; Tab cycling (separate use-package block since it has its own autoload)
+(use-package buffer-flip-tabs
+  :ensure nil  ; comes with buffer-flip
+  :bind (("M-S-<iso-lefttab>" . buffer-flip-tab)
+         :map buffer-flip-tab-map
+         ("M-S-<iso-lefttab>" . buffer-flip-tab-forward)
+         ("M-S-<tab>"         . buffer-flip-tab-backward)
+         ("M-ESC"             . buffer-flip-tab-abort)))
 ```
 
 Usage example
@@ -143,6 +168,19 @@ little like `pop-to-buffer` for buffer-flipping.  It can be bound to
 its own keystroke, or can be invoked by calling `buffer-flip` with a
 prefix arg.
 
+Tab cycling
+-----------
+
+`buffer-flip-tab` works the same way but cycles through `tab-bar-mode` tabs in LRU (most-recently-used) order.
+Tabs are sorted by their `time` property — the tab you used most recently appears first.
+
+When cycling ends normally (you start working in the chosen tab), the tab you started from is promoted to the top of
+the LRU stack so that a quick flip returns you there.  Aborting with `buffer-flip-tab-abort` restores the original tab
+order exactly.
+
+Tab cycling is loaded lazily — `buffer-flip-tabs.el` and `tab-bar` are only required when `buffer-flip-tab` is first
+invoked.
+
 The (Non) UI
 -------------
 
@@ -181,3 +219,16 @@ There is no additional buffer stack maintained by this package.  Emacs
 already keeps its buffers in a stack, and this package leverages that
 fact.  You can see the Emacs buffer stack by running `M-x
 list-buffers` or by evaluating `(buffer-list)`.
+
+File structure
+--------------
+
+| File                   | Provides              | Description                                     |
+|------------------------|-----------------------|-------------------------------------------------|
+| `buffer-flip.el`       | `buffer-flip`         | Backward-compat wrapper; requires buffer-flip-buffers |
+| `buffer-flip-common.el`| `buffer-flip-common`  | Shared display engine (faces, formatting, map validation) |
+| `buffer-flip-buffers.el`| `buffer-flip-buffers`| Buffer cycling commands                         |
+| `buffer-flip-tabs.el`  | `buffer-flip-tabs`    | Tab-bar tab cycling commands                    |
+| `buffer-flip-test.el`  | `buffer-flip-test`    | ERT test suite                                  |
+
+Existing `(require 'buffer-flip)` configurations work unchanged.
