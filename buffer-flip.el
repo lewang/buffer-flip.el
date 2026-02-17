@@ -87,6 +87,40 @@ marker at the list boundary to show where the cycle wraps."
                                   (max 0 (- text-len width))))))
       (truncate-string-to-width text (+ start-col width) start-col))))
 
+(defvar buffer-flip-map '(keymap)
+  "The transient map which is active during buffer cycling.
+This must be explicitly configured by the user with keys mapped
+to the three buffer flipping commands, as shown in the following
+example.
+
+;; key to begin cycling buffers.  Global key.
+\(global-set-key (kbd \"M-<tab>\") \\='buffer-flip)
+
+;; transient keymap used once cycling starts
+\(setq buffer-flip-map
+      (let ((map (make-sparse-keymap)))
+        (define-key map (kbd \"M-<tab>\")   \\='buffer-flip-forward)
+        (define-key map (kbd \"M-S-<tab>\") \\='buffer-flip-backward)
+        (define-key map (kbd \"M-ESC\")     \\='buffer-flip-abort)
+        map))")
+
+(defvar buffer-flip-tab-map '(keymap)
+  "The transient map which is active during tab cycling.
+This must be explicitly configured by the user with keys mapped
+to the three tab flipping commands, as shown in the following
+example.
+
+;; key to begin cycling tabs.  Global key.
+\(global-set-key (kbd \"M-<tab>\") \\='buffer-flip-tab)
+
+;; transient keymap used once cycling starts
+\(setq buffer-flip-tab-map
+      (let ((map (make-sparse-keymap)))
+        (define-key map (kbd \"M-<tab>\")   \\='buffer-flip-tab-forward)
+        (define-key map (kbd \"M-S-<tab>\") \\='buffer-flip-tab-backward)
+        (define-key map (kbd \"M-ESC\")     \\='buffer-flip-tab-abort)
+        map))")
+
 (defun buffer-flip-check-map-configuration (map &rest commands)
   "Ensure MAP has bindings for each command in COMMANDS.
 Signals `user-error' for any command not bound in MAP."

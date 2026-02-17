@@ -32,23 +32,6 @@
 (require 'cl-lib)
 (require 'buffer-flip)
 
-(defvar buffer-flip-map '(keymap)
-  "The transient map which is active during cycling.
-This must be explicitly configured by the user with keys mapped
-to the three buffer flipping commands, as shown in the following
-example.
-
-;; key to begin cycling buffers.  Global key.
-\(global-set-key (kbd \"M-<tab>\") \\='buffer-flip)
-
-;; transient keymap used once cycling starts
-\(setq buffer-flip-map
-      (let ((map (make-sparse-keymap)))
-        (define-key map (kbd \"M-<tab>\")   \\='buffer-flip-forward)
-        (define-key map (kbd \"M-S-<tab>\") \\='buffer-flip-backward)
-        (define-key map (kbd \"M-ESC\")     \\='buffer-flip-abort)
-        map))")
-
 (defvar buffer-flip-exit-function nil
   "Called by `buffer-flip-abort' to exit the transient map.")
 

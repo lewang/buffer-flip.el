@@ -32,23 +32,6 @@
 (require 'cl-lib)
 (require 'buffer-flip)
 
-(defvar buffer-flip-tab-map '(keymap)
-  "The transient map which is active during tab cycling.
-This must be explicitly configured by the user with keys mapped
-to the three tab flipping commands, as shown in the following
-example.
-
-;; key to begin cycling tabs.  Global key.
-\(global-set-key (kbd \"M-<tab>\") \\='buffer-flip-tab)
-
-;; transient keymap used once cycling starts
-\(setq buffer-flip-tab-map
-      (let ((map (make-sparse-keymap)))
-        (define-key map (kbd \"M-<tab>\")   \\='buffer-flip-tab-forward)
-        (define-key map (kbd \"M-S-<tab>\") \\='buffer-flip-tab-backward)
-        (define-key map (kbd \"M-ESC\")     \\='buffer-flip-tab-abort)
-        map))")
-
 (defvar buffer-flip-tab--tabs nil
   "Cached LRU-sorted tab list during cycling.
 The `car' is the original tab at session start.")
