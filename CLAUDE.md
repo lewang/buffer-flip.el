@@ -14,7 +14,7 @@ the interactive commands.
 
 ### Eval order
 
-1. `buffer-flip-common.el`
+1. `buffer-flip.el`
 2. `buffer-flip-buffers.el` and/or `buffer-flip-tabs.el`
 3. `buffer-flip-test.el` (for tests)
 
@@ -30,14 +30,13 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 
 ### File structure
 
-- **`buffer-flip.el`** — backward-compat wrapper; `(require 'buffer-flip)` loads `buffer-flip-buffers` (which loads
-  `buffer-flip-common`). Existing user configs work unchanged.
-- **`buffer-flip-common.el`** (`buffer-flip-common`) — shared display engine: faces, `buffer-flip--format-item`,
-  `buffer-flip--format-items` (centering, fence, truncation), `buffer-flip-check-map-configuration`. No commands.
-- **`buffer-flip-buffers.el`** (`buffer-flip-buffers`) — buffer cycling. Autoloaded entry points: `buffer-flip`,
-  `buffer-flip-other-window`.
-- **`buffer-flip-tabs.el`** (`buffer-flip-tabs`) — tab-bar tab cycling. Autoloaded entry point: `buffer-flip-tab`.
-  Lazy-requires `tab-bar` at runtime.
+- **`buffer-flip.el`** — shared display engine and base feature: `defgroup`, faces, `buffer-flip--format-item`,
+  `buffer-flip--format-items` (centering, fence, truncation), `buffer-flip-check-map-configuration`.
+  Provides `buffer-flip` feature; sub-modules require it.
+- **`buffer-flip-buffers.el`** (`buffer-flip-buffers`) — buffer cycling. Requires `buffer-flip`. Autoloaded entry
+  points: `buffer-flip`, `buffer-flip-other-window`.
+- **`buffer-flip-tabs.el`** (`buffer-flip-tabs`) — tab-bar tab cycling. Requires `buffer-flip`. Autoloaded entry
+  point: `buffer-flip-tab`. Lazy-requires `tab-bar` at runtime.
 - **`buffer-flip-test.el`** — ERT tests for common engine and tab time fixup.
 
 ### Cycling mechanism (buffers)
@@ -59,7 +58,7 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 4. On abort: fixup restores original order (`cdr` of cache), then switches back to original tab.
 5. Cache is nil'd before calling exit function to prevent double-fixup.
 
-### Display engine (`buffer-flip-common`)
+### Display engine (`buffer-flip.el`)
 
 `buffer-flip--format-items` takes a list of name strings and the current name. It rotates the list to center the
 current item, inserts a `┃┃` fence at the wrap boundary, applies faces, and truncates to fit the minibuffer window

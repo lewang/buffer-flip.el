@@ -30,7 +30,7 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'buffer-flip-common)
+(require 'buffer-flip)
 
 (defvar buffer-flip-tab-map '(keymap)
   "The transient map which is active during tab cycling.

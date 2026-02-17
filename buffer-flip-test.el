@@ -30,7 +30,7 @@
 
 (require 'ert)
 (require 'cl-lib)
-(require 'buffer-flip-common)
+(require 'buffer-flip)
 (require 'buffer-flip-tabs)
 
 ;;; --- buffer-flip--format-item tests ---
