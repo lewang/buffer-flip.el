@@ -25,7 +25,7 @@
 ;;; Commentary:
 
 ;; Tab-bar tab cycling commands for the buffer-flip package.  Entry
-;; point is `buffer-flip-tab'.
+;; points are `buffer-flip-tab-forward' and `buffer-flip-tab-backward'.
 
 ;;; Code:
 
@@ -92,11 +92,25 @@ tab (the `car' of the cache) to most recent."
     (buffer-flip-tab--fixup-times)
     (setq buffer-flip-tab--tabs nil)))
 
+(defun buffer-flip-tab--start-session ()
+  "Set up a tab cycling session.
+Validates the transient map, snapshots tabs, and activates
+the transient map."
+  (require 'tab-bar)
+  (buffer-flip-check-map-configuration
+   buffer-flip-tab-map
+   'buffer-flip-tab-forward 'buffer-flip-tab-backward 'buffer-flip-tab-abort)
+  (setq buffer-flip-tab--tabs (buffer-flip-tab--sorted-tabs))
+  (setq buffer-flip-tab--exit-function
+        (set-transient-map buffer-flip-tab-map t #'buffer-flip-tab--on-exit)))
+
+(defun buffer-flip-tab--in-session-p ()
+  "Return non-nil if a tab cycling session is active."
+  (memq last-command '(buffer-flip-tab-forward buffer-flip-tab-backward)))
+
 (defun buffer-flip-tab-cycle (&optional direction)
   "Cycle tabs in DIRECTION (`forward' or `backward')."
   (require 'tab-bar)
-  (unless buffer-flip-tab--tabs
-    (user-error "No active tab cycling session"))
   (let* ((tabs buffer-flip-tab--tabs)
          (len (length tabs))
          (current-tab (cl-find-if (lambda (tab) (eq 'current-tab (car tab)))
@@ -110,26 +124,21 @@ tab (the `car' of the cache) to most recent."
   (buffer-flip-tab-show))
 
 ;;;###autoload
-(defun buffer-flip-tab ()
-  "Begin cycling through tab-bar tabs in LRU order."
-  (interactive)
-  (require 'tab-bar)
-  (buffer-flip-check-map-configuration
-   buffer-flip-tab-map
-   'buffer-flip-tab-forward 'buffer-flip-tab-backward 'buffer-flip-tab-abort)
-  (setq buffer-flip-tab--tabs (buffer-flip-tab--sorted-tabs))
-  (buffer-flip-tab-cycle 'forward)
-  (setq buffer-flip-tab--exit-function
-        (set-transient-map buffer-flip-tab-map t #'buffer-flip-tab--on-exit)))
-
 (defun buffer-flip-tab-forward ()
-  "Switch to next tab during cycling."
+  "Cycle to the next tab.
+Starts a new session if not already cycling."
   (interactive)
+  (unless (buffer-flip-tab--in-session-p)
+    (buffer-flip-tab--start-session))
   (buffer-flip-tab-cycle 'forward))
 
+;;;###autoload
 (defun buffer-flip-tab-backward ()
-  "Switch to previous tab during cycling."
+  "Cycle to the previous tab.
+Starts a new session if not already cycling."
   (interactive)
+  (unless (buffer-flip-tab--in-session-p)
+    (buffer-flip-tab--start-session))
   (buffer-flip-tab-cycle 'backward))
 
 (defun buffer-flip-tab-abort ()

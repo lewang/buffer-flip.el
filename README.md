@@ -21,8 +21,9 @@ Then add the following to your config, adapting to your preferences.
 ### Buffer cycling
 
 ```lisp
-;; key to begin cycling buffers.  Global key.
-(global-set-key (kbd "M-<tab>") 'buffer-flip)
+;; keys to begin cycling buffers.  Global keys.
+(global-set-key (kbd "M-<tab>")   'buffer-flip-forward)
+(global-set-key (kbd "M-S-<tab>") 'buffer-flip-backward)
 
 ;; transient keymap used once cycling starts
 (setq buffer-flip-map
@@ -43,7 +44,8 @@ Then add the following to your config, adapting to your preferences.
 Requires Emacs 27+ with `tab-bar-mode`.  Only loaded when used — no overhead if you don't configure it.
 
 ```lisp
-(global-set-key (kbd "M-S-<iso-lefttab>") 'buffer-flip-tab)
+(global-set-key (kbd "M-S-<iso-lefttab>") 'buffer-flip-tab-forward)
+(global-set-key (kbd "M-<iso-lefttab>")   'buffer-flip-tab-backward)
 
 (setq buffer-flip-tab-map
       (let ((map (make-sparse-keymap)))
@@ -58,7 +60,8 @@ Requires Emacs 27+ with `tab-bar-mode`.  Only loaded when used — no overhead i
 ```lisp
 (use-package buffer-flip
   :ensure t
-  :bind  (("M-<tab>" . buffer-flip)
+  :bind  (("M-<tab>"   . buffer-flip-forward)
+          ("M-S-<tab>" . buffer-flip-backward)
           :map buffer-flip-map
           ( "M-<tab>" .   buffer-flip-forward)
           ( "M-S-<tab>" . buffer-flip-backward)
@@ -71,7 +74,8 @@ Requires Emacs 27+ with `tab-bar-mode`.  Only loaded when used — no overhead i
 ;; Tab cycling (separate use-package block since it has its own autoload)
 (use-package buffer-flip-tabs
   :ensure nil  ; comes with buffer-flip
-  :bind (("M-S-<iso-lefttab>" . buffer-flip-tab)
+  :bind (("M-S-<iso-lefttab>" . buffer-flip-tab-forward)
+         ("M-<iso-lefttab>"   . buffer-flip-tab-backward)
          :map buffer-flip-tab-map
          ("M-S-<iso-lefttab>" . buffer-flip-tab-forward)
          ("M-S-<tab>"         . buffer-flip-tab-backward)
@@ -83,15 +87,15 @@ Usage example
 
 The following assumes the above key bindings. 
 
-To begin cycling through the buffers, press <kbd>Alt-Tab</kbd>.  This
-begins the flipping process by switching to the most recently used
-buffer.  At this point the transient buffer-flip-map is active.
-Pressing <kbd>Alt-Tab</kbd> will continue to cycle through the buffer
-stack, more recent buffers first.  Pressing <kbd>Alt-Shift-Tab</kbd>
-will cycle in the opposite direction.  Just begin working in the
-currently-displayed buffer to stop cycling.  Doing so places that
-buffer on top of the stack.  <kbd>Alt-Esc</kbd> cancels cycling and
-switches to the buffer you started in.
+To begin cycling through the buffers, press <kbd>Alt-Tab</kbd> to go
+forward or <kbd>Alt-Shift-Tab</kbd> to go backward.  Either key starts
+a cycling session and activates the transient buffer-flip-map.
+Pressing <kbd>Alt-Tab</kbd> continues to cycle forward through the
+buffer stack (more recent buffers first), and
+<kbd>Alt-Shift-Tab</kbd> cycles in the opposite direction.  Just begin
+working in the currently-displayed buffer to stop cycling.  Doing so
+places that buffer on top of the stack.  <kbd>Alt-Esc</kbd> cancels
+cycling and switches to the buffer you started in.
 
 | Pressing                                                                    | Does this                                                                         |
 |-----------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
@@ -126,10 +130,10 @@ I like it because I can reach the keys easily in home position.
 ```lisp
 (use-package buffer-flip
   :ensure t
-  :chords (("u8" . buffer-flip))
+  :chords (("u8" . buffer-flip-forward))
   :bind  (:map buffer-flip-map
-               ( "8" .   buffer-flip-forward) 
-               ( "*" .   buffer-flip-backward) 
+               ( "8" .   buffer-flip-forward)
+               ( "*" .   buffer-flip-backward)
                ( "C-g" . buffer-flip-abort)))
 ```
 
@@ -145,15 +149,11 @@ With these bindings,
 This is incidentally the default key binding for previous versions of
 this package.  The current version has no default key binding.
 
-There is a functional difference between this binding and the Alt-Tab
-version above, which is that pressing the <kbd>u8</kbd> chord
-repeatedly will alternate between the two most recent buffers because
-it restarts the cycling process each time by invoking the
-`buffer-flip` command.  In contrast, pressing <kbd>Alt-Tab</kbd>
-repeatedly cycles through deeper and deeper buffers on the stack.
-This is because <kbd>Alt-Tab</kbd> is bound to both `buffer-flip` and
-`buffer-flip-forward`.  The first press puts you into cycling mode,
-and subsequent presses cycle forward.
+With these chord bindings, pressing <kbd>u8</kbd> repeatedly
+alternates between the two most recent buffers because the chord
+restarts the cycling session each time.  In contrast, pressing
+<kbd>Alt-Tab</kbd> repeatedly cycles through deeper and deeper buffers
+on the stack because the transient map keeps the session alive.
 
 
 buffer-flip-other-window 
@@ -164,22 +164,22 @@ buffer before flipping buffers.  That is, I want to keep my current
 buffer on top, but I want to get to some buried buffer in the other
 window.  `buffer-flip-other-window` does just that.  If there is only
 one window, the function will split the window automatically.  It's a
-little like `pop-to-buffer` for buffer-flipping.  It can be bound to
-its own keystroke, or can be invoked by calling `buffer-flip` with a
-prefix arg.
+little like `pop-to-buffer` for buffer-flipping.  Bind it to its own
+keystroke.
 
 Tab cycling
 -----------
 
-`buffer-flip-tab` works the same way but cycles through `tab-bar-mode` tabs in LRU (most-recently-used) order.
-Tabs are sorted by their `time` property — the tab you used most recently appears first.
+`buffer-flip-tab-forward` and `buffer-flip-tab-backward` work the same way but cycle through `tab-bar-mode` tabs in
+LRU (most-recently-used) order.  Tabs are sorted by their `time` property — the tab you used most recently appears
+first.  Either command starts a session from cold.
 
 When cycling ends normally (you start working in the chosen tab), the tab you started from is promoted to the top of
 the LRU stack so that a quick flip returns you there.  Aborting with `buffer-flip-tab-abort` restores the original tab
 order exactly.
 
-Tab cycling is loaded lazily — `buffer-flip-tabs.el` and `tab-bar` are only required when `buffer-flip-tab` is first
-invoked.
+Tab cycling is loaded lazily — `buffer-flip-tabs.el` and `tab-bar` are only required when a tab cycling command is
+first invoked.
 
 The (Non) UI
 -------------
@@ -223,12 +223,9 @@ list-buffers` or by evaluating `(buffer-list)`.
 File structure
 --------------
 
-| File                   | Provides              | Description                                     |
-|------------------------|-----------------------|-------------------------------------------------|
-| `buffer-flip.el`       | `buffer-flip`         | Backward-compat wrapper; requires buffer-flip-buffers |
-| `buffer-flip-common.el`| `buffer-flip-common`  | Shared display engine (faces, formatting, map validation) |
-| `buffer-flip-buffers.el`| `buffer-flip-buffers`| Buffer cycling commands                         |
-| `buffer-flip-tabs.el`  | `buffer-flip-tabs`    | Tab-bar tab cycling commands                    |
-| `buffer-flip-test.el`  | `buffer-flip-test`    | ERT test suite                                  |
-
-Existing `(require 'buffer-flip)` configurations work unchanged.
+| File                   | Provides              | Description                                              |
+|------------------------|-----------------------|----------------------------------------------------------|
+| `buffer-flip.el`       | `buffer-flip`         | Shared display engine (faces, formatting, map validation) |
+| `buffer-flip-buffers.el`| `buffer-flip-buffers`| Buffer cycling commands                                  |
+| `buffer-flip-tabs.el`  | `buffer-flip-tabs`    | Tab-bar tab cycling commands                             |
+| `buffer-flip-test.el`  | `buffer-flip-test`    | ERT test suite                                           |

@@ -25,7 +25,8 @@
 ;;; Commentary:
 
 ;; Buffer cycling commands for the buffer-flip package.  Entry points
-;; are `buffer-flip' and `buffer-flip-other-window'.
+;; are `buffer-flip-forward', `buffer-flip-backward', and
+;; `buffer-flip-other-window'.
 
 ;;; Code:
 
@@ -65,29 +66,42 @@ Current buffer is shown in [brackets] and highlighted."
          (message-log-max nil))
     (message "%s" (buffer-flip--format-items names (buffer-name cur)))))
 
-;;;###autoload
-(defun buffer-flip (&optional arg original-configuration)
-  "Begin cycling through buffers.
-With prefix ARG, invoke `buffer-flip-other-window'.
-ORIGINAL-CONFIGURATION is used internally by
-`buffer-flip-other-window' to specify the window configuration to
-be restored upon abort."
-  (interactive "P")
+(defun buffer-flip--start-session (&optional original-configuration)
+  "Set up a buffer cycling session.
+Validates the transient map, normalises the buffer stack, saves
+the window configuration (or uses ORIGINAL-CONFIGURATION), and
+activates the transient map."
   (buffer-flip-check-map-configuration
    buffer-flip-map
    'buffer-flip-forward 'buffer-flip-backward 'buffer-flip-abort)
-  ;; ensure current buffer is on the top of the stack at outset.  It's
-  ;; rare, but this happens sometimes, particularly with the help
-  ;; buffer.
   (switch-to-buffer (current-buffer))
-  (if arg
-      (buffer-flip-other-window)    ; C-u calls buffer-flip-other-window
-    (setq buffer-flip-original-window-configuration ;restored in abort
-          (or original-configuration (current-window-configuration)))
-    (buffer-flip-cycle 'forward)    ; flip forward
-    (setq buffer-flip-exit-function ; set up transient key map for cycling
-          (set-transient-map buffer-flip-map t
-                             (lambda () (switch-to-buffer (current-buffer)))))))
+  (setq buffer-flip-original-window-configuration
+        (or original-configuration (current-window-configuration)))
+  (setq buffer-flip-exit-function
+        (set-transient-map buffer-flip-map t
+                           (lambda () (switch-to-buffer (current-buffer))))))
+
+(defun buffer-flip--in-session-p ()
+  "Return non-nil if a buffer cycling session is active."
+  (memq last-command '(buffer-flip-forward buffer-flip-backward)))
+
+;;;###autoload
+(defun buffer-flip-forward ()
+  "Cycle to the next buffer.
+Starts a new session if not already cycling."
+  (interactive)
+  (unless (buffer-flip--in-session-p)
+    (buffer-flip--start-session))
+  (buffer-flip-cycle 'forward))
+
+;;;###autoload
+(defun buffer-flip-backward ()
+  "Cycle to the previous buffer.
+Starts a new session if not already cycling."
+  (interactive)
+  (unless (buffer-flip--in-session-p)
+    (buffer-flip--start-session))
+  (buffer-flip-cycle 'backward))
 
 ;;;###autoload
 (defun buffer-flip-other-window ()
@@ -107,7 +121,8 @@ created first."
         (select-window target)
       (split-window-horizontally)
       (other-window 1))
-    (buffer-flip nil original-window-configuration)))
+    (buffer-flip--start-session original-window-configuration)
+    (buffer-flip-cycle 'forward)))
 
 (defun buffer-flip-cycle (&optional direction)
   "Cycle in the direction indicated by DIRECTION.
@@ -122,20 +137,6 @@ DIRECTION can be `forward' or `backward'."
          ((or (= 0 count) ;; don't cycle through list more than once.
               (not (buffer-flip-skip-buffer buf))) buf)) t))
   (buffer-flip-show-buffers))
-
-(defun buffer-flip-forward ()
-  "Switch to next buffer during cycling.
-This command should be bound to a key inside of
-`buffer-flip-map'."
-  (interactive)
-  (buffer-flip-cycle 'forward))
-
-(defun buffer-flip-backward ()
-  "Switch to previous buffer during cycling.
-This command should be bound to a key inside of
-`buffer-flip-map'."
-  (interactive)
-  (buffer-flip-cycle 'backward))
 
 (defun buffer-flip-abort ()
   "Abort buffer cycling process and return to original buffer.

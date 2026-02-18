@@ -34,15 +34,16 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
   `buffer-flip--format-items` (centering, fence, truncation), `buffer-flip-check-map-configuration`.
   Provides `buffer-flip` feature; sub-modules require it.
 - **`buffer-flip-buffers.el`** (`buffer-flip-buffers`) — buffer cycling. Requires `buffer-flip`. Autoloaded entry
-  points: `buffer-flip`, `buffer-flip-other-window`.
+  points: `buffer-flip-forward`, `buffer-flip-backward`, `buffer-flip-other-window`.
 - **`buffer-flip-tabs.el`** (`buffer-flip-tabs`) — tab-bar tab cycling. Requires `buffer-flip`. Autoloaded entry
-  point: `buffer-flip-tab`. Lazy-requires `tab-bar` at runtime.
+  points: `buffer-flip-tab-forward`, `buffer-flip-tab-backward`. Lazy-requires `tab-bar` at runtime.
 - **`buffer-flip-test.el`** — ERT tests for common engine and tab time fixup.
 
 ### Cycling mechanism (buffers)
 
-1. `buffer-flip` — validates keymap, records window configuration, calls `buffer-flip-cycle`, activates
-   `buffer-flip-map` as transient map via `set-transient-map`.
+1. `buffer-flip-forward` / `buffer-flip-backward` — dual entry points. On cold start (detected via `last-command`
+   not being a cycling command), call `buffer-flip--start-session` to validate keymap, normalise buffer stack, save
+   window configuration, and activate `buffer-flip-map` as transient map. Then cycle in the requested direction.
 2. `buffer-flip-cycle` — walks frame-local `(buffer-list)` forward/backward with modular arithmetic, skipping
    buffers per `buffer-flip-skip-buffer`.
 3. Transient map exits when a non-mapped key is pressed; exit callback finalizes buffer choice.
@@ -50,8 +51,9 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 
 ### Cycling mechanism (tabs)
 
-1. `buffer-flip-tab` — snapshots tabs sorted by LRU (`time` property, current tab first) into
-   `buffer-flip-tab--tabs`, cycles forward, activates `buffer-flip-tab-map`.
+1. `buffer-flip-tab-forward` / `buffer-flip-tab-backward` — dual entry points. On cold start (detected via
+   `last-command`), call `buffer-flip-tab--start-session` to validate keymap, snapshot tabs sorted by LRU into
+   `buffer-flip-tab--tabs`, and activate `buffer-flip-tab-map`. Then cycle in the requested direction.
 2. `buffer-flip-tab-cycle` — finds current tab in cached list by name, advances by index.
 3. On confirm (transient map exit): `buffer-flip-tab--on-exit` calls `buffer-flip-tab--fixup-times` to assign
    synthetic decreasing times — original tab gets highest time (promoted to MRU).

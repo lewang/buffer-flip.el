@@ -93,8 +93,9 @@ This must be explicitly configured by the user with keys mapped
 to the three buffer flipping commands, as shown in the following
 example.
 
-;; key to begin cycling buffers.  Global key.
-\(global-set-key (kbd \"M-<tab>\") \\='buffer-flip)
+;; keys to begin cycling buffers.  Global keys.
+\(global-set-key (kbd \"M-<tab>\")   \\='buffer-flip-forward)
+\(global-set-key (kbd \"M-S-<tab>\") \\='buffer-flip-backward)
 
 ;; transient keymap used once cycling starts
 \(setq buffer-flip-map
@@ -110,8 +111,9 @@ This must be explicitly configured by the user with keys mapped
 to the three tab flipping commands, as shown in the following
 example.
 
-;; key to begin cycling tabs.  Global key.
-\(global-set-key (kbd \"M-<tab>\") \\='buffer-flip-tab)
+;; keys to begin cycling tabs.  Global keys.
+\(global-set-key (kbd \"M-<tab>\")   \\='buffer-flip-tab-forward)
+\(global-set-key (kbd \"M-S-<tab>\") \\='buffer-flip-tab-backward)
 
 ;; transient keymap used once cycling starts
 \(setq buffer-flip-tab-map
