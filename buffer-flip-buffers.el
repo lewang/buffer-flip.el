@@ -26,11 +26,18 @@
 
 ;; Buffer cycling commands for the buffer-flip package.  Entry points
 ;; are `buffer-flip-forward' and `buffer-flip-backward'.
+;;
+;; With a `C-u' prefix, cycling operates in another window while focus
+;; stays in the original window.  If no suitable window exists, the
+;; current window is split.
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'buffer-flip)
+
+(defvar buffer-flip--target-window nil
+  "When non-nil, cycling operates on this window instead of the selected one.")
 
 (defvar buffer-flip-exit-function nil
   "Called by `buffer-flip-abort' to exit the transient map.")
@@ -65,61 +72,90 @@ Current buffer is shown in [brackets] and highlighted."
          (message-log-max nil))
     (message "%s" (buffer-flip--format-items names (buffer-name cur)))))
 
-(defun buffer-flip--start-session ()
+(defun buffer-flip--start-session (&optional other-window-p)
   "Set up a buffer cycling session.
 Validates the transient map, normalises the buffer stack, saves
-the window configuration, and activates the transient map."
+the window configuration, and activates the transient map.
+
+When OTHER-WINDOW-P is non-nil, cycling operates on another
+window while focus stays in the original.  If no suitable window
+exists, the current window is split horizontally."
   (buffer-flip-check-map-configuration
    buffer-flip-map
    'buffer-flip-forward 'buffer-flip-backward 'buffer-flip-abort)
+  (when other-window-p
+    (let ((win nil))
+      (walk-windows (lambda (w)
+                      (unless (or win
+                                  (eq w (selected-window))
+                                  (window-dedicated-p w))
+                        (setq win w))))
+      (unless win
+        (split-window-horizontally)
+        (setq win (next-window)))
+      (setq buffer-flip--target-window win)))
   (switch-to-buffer (current-buffer))
   (setq buffer-flip-original-window-configuration (current-window-configuration))
-  (setq buffer-flip-exit-function
-        (set-transient-map buffer-flip-map t
-                           (lambda () (switch-to-buffer (current-buffer))))))
+  (let ((exit-cb
+         (if buffer-flip--target-window
+             (let ((win buffer-flip--target-window))
+               (lambda ()
+                 (when buffer-flip--target-window
+                   (with-selected-window win
+                     (switch-to-buffer (current-buffer)))
+                   (setq buffer-flip--target-window nil))))
+           (lambda () (switch-to-buffer (current-buffer))))))
+    (setq buffer-flip-exit-function
+          (set-transient-map buffer-flip-map t exit-cb))))
 
 (defun buffer-flip--in-session-p ()
   "Return non-nil if a buffer cycling session is active."
   (memq last-command '(buffer-flip-forward buffer-flip-backward)))
 
 ;;;###autoload
-(defun buffer-flip-forward ()
+(defun buffer-flip-forward (&optional other-window)
   "Cycle to the next buffer.
-Starts a new session if not already cycling."
-  (interactive)
+Starts a new session if not already cycling.  With prefix
+argument OTHER-WINDOW, cycle in another window while keeping
+focus in the current one."
+  (interactive "P")
   (unless (buffer-flip--in-session-p)
-    (buffer-flip--start-session))
+    (buffer-flip--start-session other-window))
   (buffer-flip-cycle 'forward))
 
 ;;;###autoload
-(defun buffer-flip-backward ()
+(defun buffer-flip-backward (&optional other-window)
   "Cycle to the previous buffer.
-Starts a new session if not already cycling."
-  (interactive)
+Starts a new session if not already cycling.  With prefix
+argument OTHER-WINDOW, cycle in another window while keeping
+focus in the current one."
+  (interactive "P")
   (unless (buffer-flip--in-session-p)
-    (buffer-flip--start-session))
+    (buffer-flip--start-session other-window))
   (buffer-flip-cycle 'backward))
 
 
 (defun buffer-flip-cycle (&optional direction)
   "Cycle in the direction indicated by DIRECTION.
 DIRECTION can be `forward' or `backward'."
-  (let ((l (buffer-list (selected-frame))))
-    (switch-to-buffer            ; Switch to next/prev buffer in stack
-     (cl-do ((buf (current-buffer)     ; Using the current buffer as a
-                  (nth (mod (+ (cl-position buf l) ; reference point to cycle
-                               (if (eq direction 'backward) -1 1)) ; fwd or back
-                            (length l)) l)) ; Mod length to wrap
-             (count (length l) (1- count))) ; count the number of iterations
-         ((or (= 0 count) ;; don't cycle through list more than once.
-              (not (buffer-flip-skip-buffer buf))) buf)) t))
-  (buffer-flip-show-buffers))
+  (with-selected-window (or buffer-flip--target-window (selected-window))
+    (let ((l (buffer-list (selected-frame))))
+      (switch-to-buffer            ; Switch to next/prev buffer in stack
+       (cl-do ((buf (current-buffer)     ; Using the current buffer as a
+                    (nth (mod (+ (cl-position buf l) ; reference point to cycle
+                                 (if (eq direction 'backward) -1 1)) ; fwd or back
+                              (length l)) l)) ; Mod length to wrap
+               (count (length l) (1- count))) ; count the number of iterations
+           ((or (= 0 count) ;; don't cycle through list more than once.
+                (not (buffer-flip-skip-buffer buf))) buf)) t))
+    (buffer-flip-show-buffers)))
 
 (defun buffer-flip-abort ()
   "Abort buffer cycling process and return to original buffer.
 This command should be bound to a key inside of
 `buffer-flip-map'."
   (interactive)
+  (setq buffer-flip--target-window nil)
   (set-window-configuration buffer-flip-original-window-configuration)
   (funcall buffer-flip-exit-function))
 

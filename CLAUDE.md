@@ -44,6 +44,8 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 1. `buffer-flip-forward` / `buffer-flip-backward` — dual entry points. On cold start (detected via `last-command`
    not being a cycling command), call `buffer-flip--start-session` to validate keymap, normalise buffer stack, save
    window configuration, and activate `buffer-flip-map` as transient map. Then cycle in the requested direction.
+   With `C-u` prefix, cycling operates in another window (`buffer-flip--target-window`) while focus stays in the
+   original; `buffer-flip-cycle` uses `with-selected-window` to run in the target window context.
 2. `buffer-flip-cycle` — walks frame-local `(buffer-list)` forward/backward with modular arithmetic, skipping
    buffers per `buffer-flip-skip-buffer`.
 3. Transient map exits when a non-mapped key is pressed; exit callback finalizes buffer choice.

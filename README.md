@@ -103,6 +103,7 @@ cycling and switches to the buffer you started in.
 | <kbd>Alt-Tab</kbd> <kbd>Alt-Tab</kbd>                                       | Flip to third most recent buffer                                                  |
 | <kbd>Alt-Tab</kbd> <kbd>Alt-Tab</kbd> <kbd>Alt-Tab</kbd> <kbd>Alt-Esc</kbd> | Start flipping through buffers and then cancel, returning to the original buffer. |
 | <kbd>Alt-Tab</kbd> <kbd>Alt-Tab</kbd> <kbd>Alt-Shift-Tab</kbd>              | Flips forward through the two most recent buffers, then flips backward one buffer.|
+| <kbd>C-u</kbd> <kbd>Alt-Tab</kbd>                                           | Cycle buffers in another window; focus stays in the original window.               |
 
 The buffer list is treated as a circle during cycling.  Filtered
 buffers (internal, already-visible, or matching
