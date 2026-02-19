@@ -34,7 +34,7 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
   `buffer-flip--format-items` (centering, fence, truncation), `buffer-flip-check-map-configuration`.
   Provides `buffer-flip` feature; sub-modules require it.
 - **`buffer-flip-buffers.el`** (`buffer-flip-buffers`) — buffer cycling. Requires `buffer-flip`. Autoloaded entry
-  points: `buffer-flip-forward`, `buffer-flip-backward`, `buffer-flip-other-window`.
+  points: `buffer-flip-forward`, `buffer-flip-backward`.
 - **`buffer-flip-tabs.el`** (`buffer-flip-tabs`) — tab-bar tab cycling. Requires `buffer-flip`. Autoloaded entry
   points: `buffer-flip-tab-forward`, `buffer-flip-tab-backward`. Lazy-requires `tab-bar` at runtime.
 - **`buffer-flip-test.el`** — ERT tests for common engine and tab time fixup.

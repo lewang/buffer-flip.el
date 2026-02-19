@@ -155,18 +155,6 @@ restarts the cycling session each time.  In contrast, pressing
 <kbd>Alt-Tab</kbd> repeatedly cycles through deeper and deeper buffers
 on the stack because the transient map keeps the session alive.
 
-
-buffer-flip-other-window 
-------------------------
-
-A common operation in my work flow is to switch to the other window
-buffer before flipping buffers.  That is, I want to keep my current
-buffer on top, but I want to get to some buried buffer in the other
-window.  `buffer-flip-other-window` does just that.  If there is only
-one window, the function will split the window automatically.  It's a
-little like `pop-to-buffer` for buffer-flipping.  Bind it to its own
-keystroke.
-
 Tab cycling
 -----------
 

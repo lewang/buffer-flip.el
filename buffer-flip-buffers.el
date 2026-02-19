@@ -25,8 +25,7 @@
 ;;; Commentary:
 
 ;; Buffer cycling commands for the buffer-flip package.  Entry points
-;; are `buffer-flip-forward', `buffer-flip-backward', and
-;; `buffer-flip-other-window'.
+;; are `buffer-flip-forward' and `buffer-flip-backward'.
 
 ;;; Code:
 
@@ -66,17 +65,15 @@ Current buffer is shown in [brackets] and highlighted."
          (message-log-max nil))
     (message "%s" (buffer-flip--format-items names (buffer-name cur)))))
 
-(defun buffer-flip--start-session (&optional original-configuration)
+(defun buffer-flip--start-session ()
   "Set up a buffer cycling session.
 Validates the transient map, normalises the buffer stack, saves
-the window configuration (or uses ORIGINAL-CONFIGURATION), and
-activates the transient map."
+the window configuration, and activates the transient map."
   (buffer-flip-check-map-configuration
    buffer-flip-map
    'buffer-flip-forward 'buffer-flip-backward 'buffer-flip-abort)
   (switch-to-buffer (current-buffer))
-  (setq buffer-flip-original-window-configuration
-        (or original-configuration (current-window-configuration)))
+  (setq buffer-flip-original-window-configuration (current-window-configuration))
   (setq buffer-flip-exit-function
         (set-transient-map buffer-flip-map t
                            (lambda () (switch-to-buffer (current-buffer))))))
@@ -103,26 +100,6 @@ Starts a new session if not already cycling."
     (buffer-flip--start-session))
   (buffer-flip-cycle 'backward))
 
-;;;###autoload
-(defun buffer-flip-other-window ()
-  "Switch to another window and begin cycling through buffers in that window.
-Skips dedicated windows.  If no suitable window exists, one is
-created first."
-  (interactive)
-  (let ((original-window-configuration (current-window-configuration))
-        (start-window (selected-window))
-        (target nil))
-    (walk-windows (lambda (w)
-                    (when (and (not target)
-                               (not (eq w start-window))
-                               (not (window-dedicated-p w)))
-                      (setq target w))))
-    (if target
-        (select-window target)
-      (split-window-horizontally)
-      (other-window 1))
-    (buffer-flip--start-session original-window-configuration)
-    (buffer-flip-cycle 'forward)))
 
 (defun buffer-flip-cycle (&optional direction)
   "Cycle in the direction indicated by DIRECTION.
