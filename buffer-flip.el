@@ -34,14 +34,14 @@
   "Cycle through buffers and tabs like Alt-Tab."
   :group 'convenience)
 
-(defface buffer-flip-current-buffer-face
+(defface buffer-flip-current-item-face
   '((t :inherit minibuffer-prompt))
-  "Face for the current item in the buffer-flip display."
+  "Face for the currently selected item in the buffer-flip display."
   :group 'buffer-flip)
 
-(defface buffer-flip-other-buffer-face
+(defface buffer-flip-item-face
   '((t :inherit default))
-  "Face for non-current items in the buffer-flip display."
+  "Face for items in the buffer-flip display."
   :group 'buffer-flip)
 
 (defface buffer-flip-fence-face
@@ -52,12 +52,12 @@
 (defun buffer-flip--format-item (name current-p)
   "Format NAME string for display.
 When CURRENT-P is non-nil, wrap in brackets and use
-`buffer-flip-current-buffer-face'; otherwise use
-`buffer-flip-other-buffer-face'."
+`buffer-flip-current-item-face'; otherwise use
+`buffer-flip-item-face'."
   (propertize (if current-p (format "[%s]" name) name)
               'face (if current-p
-                        'buffer-flip-current-buffer-face
-                      'buffer-flip-other-buffer-face)))
+                        'buffer-flip-current-item-face
+                      'buffer-flip-item-face)))
 
 (defun buffer-flip--format-items (names current-name)
   "Format NAMES for echo-area display with CURRENT-NAME highlighted.

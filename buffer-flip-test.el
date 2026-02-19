@@ -39,13 +39,13 @@
   "Current item gets brackets and current-buffer face."
   (let ((result (buffer-flip--format-item "foo" t)))
     (should (equal (substring-no-properties result) "[foo]"))
-    (should (eq (get-text-property 0 'face result) 'buffer-flip-current-buffer-face))))
+    (should (eq (get-text-property 0 'face result) 'buffer-flip-current-item-face))))
 
 (ert-deftest buffer-flip-test-format-item-other ()
   "Non-current item is plain with other-buffer face."
   (let ((result (buffer-flip--format-item "bar" nil)))
     (should (equal (substring-no-properties result) "bar"))
-    (should (eq (get-text-property 0 'face result) 'buffer-flip-other-buffer-face))))
+    (should (eq (get-text-property 0 'face result) 'buffer-flip-item-face))))
 
 ;;; --- buffer-flip--format-items tests ---
 
