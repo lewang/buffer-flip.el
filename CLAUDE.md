@@ -49,7 +49,10 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 2. `buffer-flip-cycle` — walks frame-local `(buffer-list)` forward/backward with modular arithmetic, skipping
    buffers per `buffer-flip-skip-buffer`.
 3. Transient map exits when a non-mapped key is pressed; exit callback finalizes buffer choice.
-4. `buffer-flip-abort` — restores saved `window-configuration`.
+4. `buffer-flip-confirm` — explicitly confirms selection by calling the transient map's deactivation function,
+   consuming the keypress so nothing leaks onto the event loop. Optional — users who don't bind it keep the old
+   behavior (unmapped keys exit + replay).
+5. `buffer-flip-abort` — restores saved `window-configuration`.
 
 ### Cycling mechanism (tabs)
 
@@ -60,7 +63,8 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 3. On confirm (transient map exit): `buffer-flip-tab--on-exit` calls `buffer-flip-tab--fixup-times` to assign
    synthetic decreasing times — original tab gets highest time (promoted to MRU).
 4. On abort: fixup restores original order (`cdr` of cache), then switches back to original tab.
-5. Cache is nil'd before calling exit function to prevent double-fixup.
+5. `buffer-flip-tab-confirm` — same pattern as buffer confirm; deactivates transient map cleanly.
+6. Cache is nil'd before calling exit function to prevent double-fixup.
 
 ### Display engine (`buffer-flip.el`)
 

@@ -150,6 +150,11 @@ DIRECTION can be `forward' or `backward'."
                 (not (buffer-flip-skip-buffer buf))) buf)) t))
     (buffer-flip-show-buffers)))
 
+(defun buffer-flip-confirm ()
+  "Confirm the current buffer selection and exit cycling."
+  (interactive)
+  (funcall buffer-flip-exit-function))
+
 (defun buffer-flip-abort ()
   "Abort buffer cycling process and return to original buffer.
 This command should be bound to a key inside of

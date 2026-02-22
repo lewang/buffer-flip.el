@@ -141,6 +141,11 @@ Starts a new session if not already cycling."
     (buffer-flip-tab--start-session))
   (buffer-flip-tab-cycle 'backward))
 
+(defun buffer-flip-tab-confirm ()
+  "Confirm the current tab selection and exit cycling."
+  (interactive)
+  (funcall buffer-flip-tab--exit-function))
+
 (defun buffer-flip-tab-abort ()
   "Abort tab cycling and return to the original tab."
   (interactive)

@@ -103,6 +103,7 @@ example.
         (define-key map (kbd \"M-<tab>\")   \\='buffer-flip-forward)
         (define-key map (kbd \"M-S-<tab>\") \\='buffer-flip-backward)
         (define-key map (kbd \"M-ESC\")     \\='buffer-flip-abort)
+        (define-key map (kbd \"RET\")       \\='buffer-flip-confirm)
         map))")
 
 (defvar buffer-flip-tab-map '(keymap)
@@ -121,6 +122,7 @@ example.
         (define-key map (kbd \"M-<tab>\")   \\='buffer-flip-tab-forward)
         (define-key map (kbd \"M-S-<tab>\") \\='buffer-flip-tab-backward)
         (define-key map (kbd \"M-ESC\")     \\='buffer-flip-tab-abort)
+        (define-key map (kbd \"RET\")       \\='buffer-flip-tab-confirm)
         map))")
 
 (defun buffer-flip-check-map-configuration (map &rest commands)
