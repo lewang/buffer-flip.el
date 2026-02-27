@@ -34,13 +34,17 @@
 
 (defvar buffer-flip-tab--tabs nil
   "Cached LRU-sorted tab list during cycling.
-The `car' is the original tab at session start.")
+The `car' is the original tab at session start.
+Entries are the live tab-bar alist objects (not copies), so
+name mutations propagate automatically and tabs are matched
+by `eq' identity rather than by name.")
 
 (defvar buffer-flip-tab--exit-function nil
   "Called by `buffer-flip-tab-abort' to exit the transient map.")
 
 (defun buffer-flip-tab--sorted-tabs ()
-  "Return tabs sorted by descending `time', current tab first."
+  "Return tabs sorted by descending `time', current tab first.
+Returns the actual tab-bar alist objects, not copies."
   (require 'tab-bar)
   (let* ((tabs (funcall tab-bar-tabs-function))
          (current (cl-find-if (lambda (tab) (eq 'current-tab (car tab))) tabs))
