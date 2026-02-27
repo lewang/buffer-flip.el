@@ -66,7 +66,7 @@ marker at the list boundary to show where the cycle wraps."
   (if (null names)
       ""
     (let* ((len (length names))
-           (idx (or (cl-position current-name names :test #'equal) 0))
+           (idx (cl-position current-name names :test #'equal))
            (start (mod (- idx (/ len 2)) len))
            (items (cl-loop for i below len
                            for real-idx = (mod (+ start i) len)
