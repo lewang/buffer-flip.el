@@ -116,8 +116,9 @@ the transient map."
          (current-tab (cl-find-if (lambda (tab) (eq 'current-tab (car tab)))
                                   (funcall tab-bar-tabs-function)))
          (current-name (alist-get 'name current-tab))
-         (idx (cl-position current-name tabs
-                           :test (lambda (name tab) (equal name (alist-get 'name tab)))))
+         (idx (or (cl-position current-name tabs
+                              :test (lambda (name tab) (equal name (alist-get 'name tab))))
+                  0))
          (next-idx (mod (+ idx (if (eq direction 'backward) -1 1)) len))
          (next-tab (nth next-idx tabs)))
     (tab-bar-switch-to-tab (alist-get 'name next-tab)))
