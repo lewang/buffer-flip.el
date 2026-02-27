@@ -59,6 +59,13 @@ Returns the actual tab-bar alist objects, not copies."
   (cl-find-if (lambda (tab) (eq 'current-tab (car tab)))
               (funcall tab-bar-tabs-function)))
 
+(defun buffer-flip-tab--select (tab)
+  "Select TAB by finding it in the live tab list and using its positional index.
+Never uses the tab display name."
+  (let ((idx (seq-position (funcall tab-bar-tabs-function) tab #'eq)))
+    (when idx
+      (tab-bar-select-tab (1+ idx)))))
+
 (defun buffer-flip-tab-show ()
   "Display the tab list in the echo area.
 Current tab is shown in [brackets] and highlighted.
@@ -122,7 +129,7 @@ the transient map."
          (idx (cl-position current-tab tabs :test #'eq))
          (next-idx (mod (+ (or idx 0) (if (eq direction 'backward) -1 1)) len))
          (next-tab (nth next-idx tabs)))
-    (tab-bar-switch-to-tab (alist-get 'name next-tab)))
+    (buffer-flip-tab--select next-tab))
   (buffer-flip-tab-show))
 
 ;;;###autoload
@@ -155,7 +162,7 @@ Starts a new session if not already cycling."
   (let ((original (car buffer-flip-tab--tabs)))
     (buffer-flip-tab--fixup-times 'aborting)
     (setq buffer-flip-tab--tabs nil)
-    (tab-bar-switch-to-tab (alist-get 'name original)))
+    (buffer-flip-tab--select original))
   (funcall buffer-flip-tab--exit-function))
 
 (provide 'buffer-flip-tabs)
