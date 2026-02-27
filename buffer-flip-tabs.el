@@ -34,17 +34,13 @@
 
 (defvar buffer-flip-tab--tabs nil
   "Cached LRU-sorted tab list during cycling.
-The `car' is the original tab at session start.
-Entries are the live tab-bar alist objects (not copies), so
-name mutations propagate automatically and tabs are matched
-by `eq' identity rather than by name.")
+The `car' is the original tab at session start.")
 
 (defvar buffer-flip-tab--exit-function nil
   "Called by `buffer-flip-tab-abort' to exit the transient map.")
 
 (defun buffer-flip-tab--sorted-tabs ()
-  "Return tabs sorted by descending `time', current tab first.
-Returns the actual tab-bar alist objects, not copies."
+  "Return tabs sorted by descending `time', current tab first."
   (require 'tab-bar)
   (let* ((tabs (funcall tab-bar-tabs-function))
          (current (cl-find-if (lambda (tab) (eq 'current-tab (car tab))) tabs))
@@ -54,25 +50,12 @@ Returns the actual tab-bar alist objects, not copies."
                          (> (or (alist-get 'time a) 0)
                             (or (alist-get 'time b) 0)))))))
 
-(defun buffer-flip-tab--current ()
-  "Return the live current-tab alist from the tab bar."
-  (cl-find-if (lambda (tab) (eq 'current-tab (car tab)))
-              (funcall tab-bar-tabs-function)))
-
-(defun buffer-flip-tab--select (tab)
-  "Select TAB by finding it in the live tab list and using its positional index.
-Never uses the tab display name."
-  (let ((idx (seq-position (funcall tab-bar-tabs-function) tab #'eq)))
-    (when idx
-      (tab-bar-select-tab (1+ idx)))))
-
 (defun buffer-flip-tab-show ()
   "Display the tab list in the echo area.
-Current tab is shown in [brackets] and highlighted.
-Names are read from cached tab alists (which reflect live
-mutations) so indicator changes mid-cycle are handled."
+Current tab is shown in [brackets] and highlighted."
   (require 'tab-bar)
-  (let* ((current-tab (buffer-flip-tab--current))
+  (let* ((current-tab (cl-find-if (lambda (tab) (eq 'current-tab (car tab)))
+                                  (funcall tab-bar-tabs-function)))
          (current-name (alist-get 'name current-tab))
          (names (mapcar (lambda (tab) (alist-get 'name tab))
                         buffer-flip-tab--tabs))
@@ -83,20 +66,25 @@ mutations) so indicator changes mid-cycle are handled."
   "Assign synthetic decreasing times to reorder tab history.
 When ABORTING is non-nil, restore the original order from the
 cached list (sans current tab).  Otherwise promote the original
-tab (the `car' of the cache) to most recent.
-Tab identity is tracked by `eq', so name mutations are safe."
+tab (the `car' of the cache) to most recent."
   (require 'tab-bar)
   (let* ((now (float-time))
-         (original (car buffer-flip-tab--tabs))
          (desired-order (if aborting
                             (cdr buffer-flip-tab--tabs)
-                          (cons original
-                                (cl-remove original (cdr buffer-flip-tab--tabs)
-                                           :test #'eq)))))
+                          (let ((original (car buffer-flip-tab--tabs)))
+                            (cons original
+                                  (cl-remove-if
+                                   (lambda (tab)
+                                     (equal (alist-get 'name tab)
+                                            (alist-get 'name original)))
+                                   (cdr buffer-flip-tab--tabs)))))))
     (cl-loop for i from 0
              for cached-tab in desired-order
-             when (not (eq 'current-tab (car cached-tab)))
-             do (setf (alist-get 'time cached-tab) (- now (* (1+ i) 0.001))))))
+             for name = (alist-get 'name cached-tab)
+             for live-tab = (cl-find-if (lambda (tab) (equal (alist-get 'name tab) name))
+                                        (funcall tab-bar-tabs-function))
+             when (and live-tab (not (eq 'current-tab (car live-tab))))
+             do (setf (alist-get 'time live-tab) (- now (* (1+ i) 0.001))))))
 
 (defun buffer-flip-tab--on-exit ()
   "Transient map exit callback.  Fixup times if cache is live."
@@ -125,11 +113,14 @@ the transient map."
   (require 'tab-bar)
   (let* ((tabs buffer-flip-tab--tabs)
          (len (length tabs))
-         (current-tab (buffer-flip-tab--current))
-         (idx (cl-position current-tab tabs :test #'eq))
-         (next-idx (mod (+ (or idx 0) (if (eq direction 'backward) -1 1)) len))
+         (current-tab (cl-find-if (lambda (tab) (eq 'current-tab (car tab)))
+                                  (funcall tab-bar-tabs-function)))
+         (current-name (alist-get 'name current-tab))
+         (idx (cl-position current-name tabs
+                           :test (lambda (name tab) (equal name (alist-get 'name tab)))))
+         (next-idx (mod (+ idx (if (eq direction 'backward) -1 1)) len))
          (next-tab (nth next-idx tabs)))
-    (buffer-flip-tab--select next-tab))
+    (tab-bar-switch-to-tab (alist-get 'name next-tab)))
   (buffer-flip-tab-show))
 
 ;;;###autoload
@@ -162,7 +153,7 @@ Starts a new session if not already cycling."
   (let ((original (car buffer-flip-tab--tabs)))
     (buffer-flip-tab--fixup-times 'aborting)
     (setq buffer-flip-tab--tabs nil)
-    (buffer-flip-tab--select original))
+    (tab-bar-switch-to-tab (alist-get 'name original)))
   (funcall buffer-flip-tab--exit-function))
 
 (provide 'buffer-flip-tabs)
