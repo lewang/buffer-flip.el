@@ -40,9 +40,9 @@ Each entry is a snapshot alist captured at session start.")
 (defun buffer-flip-tab--key (tab)
   "Return a stable identity key for TAB.
 Uses `w-workspace' if present (stable across name mutations),
-otherwise falls back to the tab display name."
+otherwise falls back to a tagged cons of the tab display name."
   (or (alist-get 'w-workspace (cdr tab))
-      (alist-get 'name (cdr tab))))
+      (cons 'name (alist-get 'name (cdr tab)))))
 
 (defvar buffer-flip-tab--exit-function nil
   "Called by `buffer-flip-tab-abort' to exit the transient map.")
