@@ -46,19 +46,6 @@
   "Saves the current window configuration when flipping begins.
 Used by `buffer-flip-abort' to restore the original buffer.")
 
-(defvar buffer-flip--session-active nil
-  "Non-nil while a buffer cycling session is in progress.
-Set when a session starts and cleared when the transient map exits, so
-session continuity does not depend on `last-command' -- an entrance
-command with any name keeps the session going across flip-key presses.")
-
-(defvar buffer-flip--session-filter nil
-  "Keep-list transform for the current cycling session, or nil.
-When non-nil, a function taking the frame's buffer list and returning the
-buffers to cycle among.  Stashed at session start and cleared at exit, so
-a differently-named entrance can narrow one session without affecting the
-plain `buffer-flip-forward'/`buffer-flip-backward' entrances.")
-
 (defcustom buffer-flip-skip-patterns nil
   "A list of regular expressions.
 Buffers with names matching these patterns will be skipped when
@@ -73,19 +60,6 @@ flipping through buffers."
         (cl-find-if (lambda (rex) (string-match-p rex name))
                     buffer-flip-skip-patterns))))
 
-(defun buffer-flip--candidates ()
-  "Frame buffer list narrowed by the session filter, current buffer retained.
-Apply `buffer-flip--session-filter' (when set) to the selected frame's
-buffer list, but always keep `current-buffer' as the cycle anchor even if
-the filter drops it, so cycling has a valid reference point.  With no
-filter the result equals the frame's buffer list unchanged."
-  (let* ((cur (current-buffer))
-         (all (buffer-list (selected-frame)))
-         (kept (if buffer-flip--session-filter
-                   (funcall buffer-flip--session-filter all)
-                 all)))
-    (if (memq cur kept) kept (cons cur kept))))
-
 (defun buffer-flip-show-buffers ()
   "Display the eligible buffer list in the echo area.
 Current buffer is shown in [brackets] and highlighted."
@@ -93,23 +67,19 @@ Current buffer is shown in [brackets] and highlighted."
          (bufs (cl-remove-if (lambda (buf)
                                (and (not (eq buf cur))
                                     (buffer-flip-skip-buffer buf)))
-                             (buffer-flip--candidates)))
+                             (buffer-list (selected-frame))))
          (names (mapcar #'buffer-name bufs))
          (message-log-max nil))
     (message "%s" (buffer-flip--format-items names (buffer-name cur)))))
 
-(defun buffer-flip--start-session (&optional other-window-p filter)
+(defun buffer-flip--start-session (&optional other-window-p)
   "Set up a buffer cycling session.
 Validates the transient map, normalises the buffer stack, saves
 the window configuration, and activates the transient map.
 
 When OTHER-WINDOW-P is non-nil, cycling operates on another
 window while focus stays in the original.  If no suitable window
-exists, the current window is split horizontally.
-
-FILTER, when non-nil, is a keep-list transform (see
-`buffer-flip--session-filter') that narrows the buffers cycled during
-this session; it is cleared when the transient map exits."
+exists, the current window is split horizontally."
   (buffer-flip-check-map-configuration
    buffer-flip-map
    'buffer-flip-forward 'buffer-flip-backward 'buffer-flip-abort)
@@ -125,32 +95,22 @@ this session; it is cleared when the transient map exits."
         (setq win (next-window)))
       (setq buffer-flip--target-window win)))
   (switch-to-buffer (current-buffer))
-  (setq buffer-flip-original-window-configuration (current-window-configuration)
-        buffer-flip--session-filter filter
-        buffer-flip--session-active t)
-  (let* ((commit
-          (if buffer-flip--target-window
-              (let ((win buffer-flip--target-window))
-                (lambda ()
-                  (when buffer-flip--target-window
-                    (with-selected-window win
-                      (switch-to-buffer (current-buffer)))
-                    (setq buffer-flip--target-window nil))))
-            (lambda () (switch-to-buffer (current-buffer)))))
-         ;; `set-transient-map's on-exit runs on every deactivation path
-         ;; (implicit out-of-map key, `buffer-flip-confirm', `buffer-flip-abort'),
-         ;; so this is the single point that tears down session state.
-         (exit-cb
-          (lambda ()
-            (funcall commit)
-            (setq buffer-flip--session-active nil
-                  buffer-flip--session-filter nil))))
+  (setq buffer-flip-original-window-configuration (current-window-configuration))
+  (let ((exit-cb
+         (if buffer-flip--target-window
+             (let ((win buffer-flip--target-window))
+               (lambda ()
+                 (when buffer-flip--target-window
+                   (with-selected-window win
+                     (switch-to-buffer (current-buffer)))
+                   (setq buffer-flip--target-window nil))))
+           (lambda () (switch-to-buffer (current-buffer))))))
     (setq buffer-flip-exit-function
           (set-transient-map buffer-flip-map t exit-cb))))
 
 (defun buffer-flip--in-session-p ()
   "Return non-nil if a buffer cycling session is active."
-  buffer-flip--session-active)
+  (memq last-command '(buffer-flip-forward buffer-flip-backward)))
 
 ;;;###autoload
 (defun buffer-flip-forward (&optional other-window)
@@ -179,7 +139,7 @@ focus in the current one."
   "Cycle in the direction indicated by DIRECTION.
 DIRECTION can be `forward' or `backward'."
   (with-selected-window (or buffer-flip--target-window (selected-window))
-    (let ((l (buffer-flip--candidates)))
+    (let ((l (buffer-list (selected-frame))))
       (switch-to-buffer            ; Switch to next/prev buffer in stack
        (cl-do ((buf (current-buffer)     ; Using the current buffer as a
                     (nth (mod (+ (cl-position buf l) ; reference point to cycle

@@ -41,21 +41,13 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 
 ### Cycling mechanism (buffers)
 
-1. `buffer-flip-forward` / `buffer-flip-backward` — dual entry points. On cold start (detected via
-   `buffer-flip--in-session-p`, which reads the `buffer-flip--session-active` flag), call `buffer-flip--start-session`
-   to validate keymap, normalise buffer stack, save window configuration, stash an optional keep-list filter, raise
-   the session flag, and activate `buffer-flip-map` as transient map. Then cycle in the requested direction. The flag
-   (rather than `last-command`) is what carries a session across flip-key presses, so an arbitrarily-named entrance
-   command can start one and the in-map keys keep it going. With `C-u` prefix, cycling operates in another window
-   (`buffer-flip--target-window`) while focus stays in the original; `buffer-flip-cycle` uses `with-selected-window`
-   to run in the target window context.
-2. `buffer-flip-cycle` — walks the session candidate list forward/backward with modular arithmetic, skipping buffers
-   per `buffer-flip-skip-buffer`. The candidate list comes from `buffer-flip--candidates`: frame-local
-   `(buffer-list)` optionally narrowed by the session's keep-list filter (`buffer-flip--session-filter`, a
-   `(buffers) -> buffers` transform), always retaining the current buffer as a cycle anchor. With no filter this is
-   just the frame buffer list, so plain `buffer-flip-forward`/`backward` are unchanged. The filter is set at session
-   start and cleared when the transient map exits, so a caller (e.g. a project-scoped entrance) can narrow one
-   session without affecting the plain entrances.
+1. `buffer-flip-forward` / `buffer-flip-backward` — dual entry points. On cold start (detected via `last-command`
+   not being a cycling command), call `buffer-flip--start-session` to validate keymap, normalise buffer stack, save
+   window configuration, and activate `buffer-flip-map` as transient map. Then cycle in the requested direction.
+   With `C-u` prefix, cycling operates in another window (`buffer-flip--target-window`) while focus stays in the
+   original; `buffer-flip-cycle` uses `with-selected-window` to run in the target window context.
+2. `buffer-flip-cycle` — walks frame-local `(buffer-list)` forward/backward with modular arithmetic, skipping
+   buffers per `buffer-flip-skip-buffer`.
 3. Transient map exits when a non-mapped key is pressed; exit callback finalizes buffer choice.
 4. `buffer-flip-confirm` — explicitly confirms selection by calling the transient map's deactivation function,
    consuming the keypress so nothing leaks onto the event loop. Optional — users who don't bind it keep the old
