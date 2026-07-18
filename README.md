@@ -111,6 +111,26 @@ buffers (internal, already-visible, or matching
 The list is not reshuffled until cycling ends — only then is the
 chosen buffer promoted to the front.
 
+Each entry in `buffer-flip-skip-patterns` is either a buffer-name
+regexp or a predicate function of one argument (the buffer) that
+returns non-nil to skip it — so you can filter by mode, file, or
+directory, not just name.  Since it is an ordinary variable, a command
+can `let`-bind it around `buffer-flip-forward` (e.g. consing an extra
+skip predicate onto the front) to narrow a single cycling session; the
+value is captured when the session starts and used until it ends:
+
+```lisp
+(defun my/flip-this-mode-only ()
+  "Flip only through buffers sharing the current major mode."
+  (interactive)
+  (let* ((mode major-mode)
+         (buffer-flip-skip-patterns
+          (cons (lambda (buf)
+                  (not (eq (buffer-local-value 'major-mode buf) mode)))
+                buffer-flip-skip-patterns)))
+    (buffer-flip-forward)))
+```
+
 | Step                                   | Buffer list         | Notes                                 |
 |----------------------------------------|---------------------|---------------------------------------|
 | Start                                  | [**A**, 1, 2, B, C] | `A` is current; `1`, `2` are filtered |

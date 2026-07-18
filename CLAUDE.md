@@ -41,18 +41,34 @@ Or batch: `(ert-run-tests-batch "^buffer-flip-test")`
 
 ### Cycling mechanism (buffers)
 
-1. `buffer-flip-forward` / `buffer-flip-backward` — dual entry points. On cold start (detected via `last-command`
-   not being a cycling command), call `buffer-flip--start-session` to validate keymap, normalise buffer stack, save
-   window configuration, and activate `buffer-flip-map` as transient map. Then cycle in the requested direction.
-   With `C-u` prefix, cycling operates in another window (`buffer-flip--target-window`) while focus stays in the
-   original; `buffer-flip-cycle` uses `with-selected-window` to run in the target window context.
-2. `buffer-flip-cycle` — walks frame-local `(buffer-list)` forward/backward with modular arithmetic, skipping
-   buffers per `buffer-flip-skip-buffer`.
-3. Transient map exits when a non-mapped key is pressed; exit callback finalizes buffer choice.
-4. `buffer-flip-confirm` — explicitly confirms selection by calling the transient map's deactivation function,
-   consuming the keypress so nothing leaks onto the event loop. Optional — users who don't bind it keep the old
-   behavior (unmapped keys exit + replay).
-5. `buffer-flip-abort` — restores saved `window-configuration`.
+All per-session state lives in one `cl-defstruct`, `buffer-flip--session` (slots: `target-window`, `exit-function`,
+`window-configuration`, `skip-patterns`). The variable `buffer-flip--session` is nil when idle and holds the struct
+while cycling.
+
+1. `buffer-flip-forward` / `buffer-flip-backward` — dual entry points. On cold start (detected via
+   `buffer-flip--in-session-p`, i.e. no `buffer-flip--session` yet), call `buffer-flip--start-session` to validate the
+   keymap, normalise the buffer stack, save the window configuration, capture `buffer-flip-skip-patterns` into the
+   session, and activate `buffer-flip-map` as transient map. Then cycle. The session struct (not `last-command`) is
+   what carries a session across flip-key presses, so an arbitrarily-named entrance command can start one. With `C-u`,
+   cycling operates in another window (the session's `target-window`) while focus stays in the original;
+   `buffer-flip-cycle` uses `with-selected-window` to run in that window context.
+2. `buffer-flip-cycle` — walks frame-local `(buffer-list)` forward/backward with modular arithmetic, skipping buffers
+   per `buffer-flip-skip-buffer`.
+3. Transient map exits when a non-mapped key is pressed; the exit callback commits the choice AND clears
+   `buffer-flip--session` — the single teardown point for every deactivation path (out-of-map key, confirm, abort).
+4. `buffer-flip-confirm` — explicitly confirms selection by calling the session's `exit-function`, consuming the
+   keypress so nothing leaks onto the event loop. Optional — users who don't bind it keep the old behavior (unmapped
+   keys exit + replay).
+5. `buffer-flip-abort` — clears the session's `target-window` (so the exit commit doesn't re-switch it), restores the
+   saved `window-configuration`, then calls the `exit-function`.
+
+### Filtering (`buffer-flip-skip-patterns`)
+
+`buffer-flip-skip-patterns` is a list whose elements are each either a buffer-name regexp or a predicate function of a
+buffer (non-nil ⇒ skip); `buffer-flip-skip-buffer` also always skips already-visible and internal buffers. Because it
+is an ordinary variable, a command can `let`-bind it — e.g. consing an extra skip predicate onto the front — to narrow
+a single session. `buffer-flip--start-session` captures the value at start into the session struct, so the filter
+survives the transient map even after the caller's `let` unwinds. There is deliberately no separate filtering knob.
 
 ### Cycling mechanism (tabs)
 
